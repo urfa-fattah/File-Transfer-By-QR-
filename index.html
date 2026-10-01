@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisQR — Universal Encrypted QR Vault & Transfer Engine</title>
+    <meta name="description" content="Encode, encrypt, transfer, scan, decrypt, and download any data or file via proprietary AES-256-GCM encrypted QR codes.">
+
+    <!-- CSS Design System -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- Vendor Libraries (Self-Contained Offline) -->
+    <script src="vendor/pako.min.js"></script>
+    <script src="vendor/easy.qrcode.min.js"></script>
+    <script src="vendor/jsqr.min.js"></script>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="app-header">
+        <div class="header-container">
+            <a href="#" class="brand-wrap">
+                <div class="brand-icon">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                </div>
+                <div>
+                    <span class="brand-title">AegisQR</span>
+                    <span class="brand-badge">Vault v1.0</span>
+                </div>
+            </a>
+
+            <!-- Navigation Tabs -->
+            <nav class="nav-tabs" role="tablist">
+                <button class="nav-tab-btn active" data-tab="generate" role="tab">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-5 5h2v2h-2v-2zm2-5h2v2h-2v-2zm3 3h2v2h-2v-2zm2 2h2v2h-2v-2zm-7 2h2v2h-2v-2z"/></svg>
+                    <span>Generate</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="scan" role="tab">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm9.5-6.5v3h-3v-3h3M20 5h-6v6h6V5zm-4 8h1.5v1.5H16V13zm1.5 1.5H19V16h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5 1.5H19V19h-1.5v-1.5zM19 13h1.5v1.5H19V13zm0 3h1.5v1.5H19V16zm0 3h1.5v1.5H19V19zM2 2h4v2H4v2H2V2zm20 0v4h-2V4h-2V2h4zM2 22h4v-2H4v-2H2v4zm20 0v-4h-2v2h-2v2h4z"/></svg>
+                    <span>Scan & Decrypt</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="history" role="tab">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                    <span>Vault Log</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="docs" role="tab">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.67-3.13 8.96-7 10.02-3.87-1.06-7-5.35-7-10.02V6.3l7-3.12zM11 7h2v6h-2V7zm0 8h2v2h-2v-2z"/></svg>
+                    <span>Security</span>
+                </button>
+            </nav>
+
+            <!-- Actions / Theme Switcher -->
+            <div class="header-actions">
+                <button class="btn-icon-circle" id="btnThemeToggle" title="Toggle Theme" aria-label="Toggle Theme">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="app-main">
+
+        <!-- ==========================================
+             TAB 1: GENERATE & ENCRYPT
+             ========================================== -->
+        <section class="tab-panel active" id="tab-generate">
+            <div class="studio-layout">
+
+                <!-- Left Column: Input Configuration -->
+                <div class="studio-config-card glass-panel">
+                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Universal Data Input</h2>
+                    <p class="text-muted" style="font-size: 13.5px; margin-bottom: 20px;">
+                        Input any data or upload any file. Content is compressed and encrypted with AES-256-GCM before rendering.
+                    </p>
+
+                    <!-- Data Type Selector Pills -->
+                    <div class="type-pills-row">
+                        <button class="type-pill active" data-type="file">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                            <span>Any File</span>
+                        </button>
+                        <button class="type-pill" data-type="text">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M14 17H4v-2h10v2zm6-8H4V7h16v2zm0 4H4v-2h16v2zm-4 4h-2v4h-2v-4h-2v-2h6v2z"/></svg>
+                            <span>Text / Note</span>
+                        </button>
+                        <button class="type-pill" data-type="url">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+                            <span>Link / URL</span>
+                        </button>
+                        <button class="type-pill" data-type="vcard">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                            <span>Contact vCard</span>
+                        </button>
+                        <button class="type-pill" data-type="wifi">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.5 0 6.69 1.4 9 3.68L12 19.78 3 11.18c2.31-2.28 5.5-3.68 9-3.68z"/></svg>
+                            <span>Wi-Fi Network</span>
+                        </button>
+                        <button class="type-pill" data-type="code">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+                            <span>Code / JSON</span>
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Input Fields Container -->
+                    <div id="dataInputFields">
+
+                        <!-- TYPE 1: ANY FILE -->
+                        <div class="input-type-group active" id="group-file">
+                            <div class="dropzone" id="genFileDropZone" onclick="document.getElementById('genericFileInput').click()">
+                                <input type="file" id="genericFileInput" style="display: none;">
+                                <svg class="dropzone-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                                <div class="dropzone-title">Click to upload or drag & drop any file</div>
+                                <div class="dropzone-sub">Images, PDF documents, Audio clips, ZIP archives, Executables, Arbitrary binary</div>
+                            </div>
+                            <div class="selected-file-chip" id="selectedFileInfo">
+                                <span id="selectedFileName" style="font-weight: 700;">No file selected</span>
+                                <span class="badge badge-accent" id="selectedFileSize">0 KB</span>
+                            </div>
+                        </div>
+
+                        <!-- TYPE 2: TEXT / NOTE -->
+                        <div class="input-type-group" id="group-text">
+                            <div class="form-group">
+                                <label class="form-label">Secure Note / Text Message</label>
+                                <textarea class="form-textarea" id="inputTextContent" placeholder="Type or paste private text, markdown, or secrets..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- TYPE 3: URL -->
+                        <div class="input-type-group" id="group-url">
+                            <div class="form-group">
+                                <label class="form-label">Destination Web Address</label>
+                                <input type="url" class="form-input" id="inputUrlContent" placeholder="https://example.com/vault">
+                            </div>
+                        </div>
+
+                        <!-- TYPE 4: VCARD CONTACT -->
+                        <div class="input-type-group" id="group-vcard">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" class="form-input" id="vcardName" placeholder="Dr. Jane Doe">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-input" id="vcardPhone" placeholder="+1 (555) 019-2834">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" class="form-input" id="vcardEmail" placeholder="jane@enterprise.org">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Company / Organization</label>
+                                    <input type="text" class="form-input" id="vcardOrg" placeholder="CipherTech Labs">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TYPE 5: WI-FI NETWORK -->
+                        <div class="input-type-group" id="group-wifi">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Network Name (SSID)</label>
+                                    <input type="text" class="form-input" id="wifiSsid" placeholder="Office_Secure_5G">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Security Type</label>
+                                    <select class="form-select" id="wifiSecurity">
+                                        <option value="WPA">WPA / WPA2 / WPA3 (Personal)</option>
+                                        <option value="WEP">WEP</option>
+                                        <option value="nopass">Open (No Security)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Network Password</label>
+                                <input type="password" class="form-input" id="wifiPass" placeholder="Enter Wi-Fi password">
+                            </div>
+                        </div>
+
+                        <!-- TYPE 6: CODE / JSON -->
+                        <div class="input-type-group" id="group-code">
+                            <div class="form-group">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <label class="form-label" style="margin-bottom: 0;">Code Snippet / Structured JSON</label>
+                                    <select class="form-select" id="codeLangSelect" style="width: auto; padding: 4px 8px; font-size: 12px;">
+                                        <option value="json">JSON</option>
+                                        <option value="js">JavaScript</option>
+                                        <option value="py">Python</option>
+                                        <option value="html">HTML / XML</option>
+                                        <option value="sql">SQL</option>
+                                        <option value="txt">Plain Text</option>
+                                    </select>
+                                </div>
+                                <textarea class="form-textarea" id="inputCodeContent" placeholder='{"status": "authorized", "token": "secret_123"}' style="font-family: monospace;"></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Optional Note / Description -->
+                    <div class="form-group" style="margin-top: 14px;">
+                        <label class="form-label">Optional Label / Description</label>
+                        <input type="text" class="form-input" id="inputNote" placeholder="e.g. Encrypted Board Presentation Q3">
+                    </div>
+
+                    <!-- Security & Encryption Envelope Controls -->
+                    <div class="security-accordion">
+                        <div class="form-group">
+                            <label class="form-label">Decryption & Sharing Standard</label>
+                            <select class="form-select" id="qrFormatMode">
+                                <option value="direct-url" selected>Direct Web-Vault Link (Scan with phone camera to auto-open & decrypt)</option>
+                                <option value="raw-cipher">Air-Gapped Raw CipherQR (Only decryptable inside AegisQR in-app scanner)</option>
+                            </select>
+                            <p class="text-muted" style="font-size: 12px; margin-top: 6px;">
+                                Both modes protect raw data with AES-256-GCM. Third-party apps cannot decipher the underlying content.
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-toggle-wrap">
+                                <input type="checkbox" id="chkEnablePassword" class="checkbox-custom">
+                                <span style="font-size: 13.5px; font-weight: 600;">Require Recipient PIN / Passphrase (Zero-Knowledge)</span>
+                            </label>
+                            <div id="passwordInputWrapper" style="display: none; margin-top: 10px;">
+                                <input type="password" class="form-input" id="generatorPassword" placeholder="Set a secret password or 6-digit PIN">
+                                <p class="text-muted" style="font-size: 12px; margin-top: 4px;">
+                                    Even if someone scans this QR code, they cannot decrypt the data without this PIN.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR Styling Options -->
+                    <div class="styling-section">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Color Theme</label>
+                                <select class="form-select" id="qrThemeSelect">
+                                    <option value="obsidian-cyan" selected>Obsidian Cyan (Default)</option>
+                                    <option value="neon-violet">Neon Violet</option>
+                                    <option value="matrix-emerald">Matrix Emerald</option>
+                                    <option value="solar-amber">Solar Amber</option>
+                                    <option value="monochrome-dark">Monochrome Slate</option>
+                                    <option value="monochrome-light">Monochrome High-Contrast (Max Scannability)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Dot Style</label>
+                                <select class="form-select" id="qrDotStyleSelect">
+                                    <option value="rounded" selected>Rounded Smooth</option>
+                                    <option value="dot">Circular Dots</option>
+                                    <option value="rect">Standard Squares</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Center Logo</label>
+                                <select class="form-select" id="qrLogoSelect">
+                                    <option value="shield" selected>Aegis Shield</option>
+                                    <option value="lock">Security Lock</option>
+                                    <option value="key">Cipher Key</option>
+                                    <option value="none">No Logo (Maximum Scan Density)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Error Correction (ECC)</label>
+                                <select class="form-select" id="qrEccSelect">
+                                    <option value="M" selected>Level M (15% Recovery)</option>
+                                    <option value="L">Level L (7% Recovery - High Density)</option>
+                                    <option value="Q">Level Q (25% Recovery)</option>
+                                    <option value="H">Level H (30% Recovery)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg" id="btnTriggerGenerate" style="width: 100%; margin-top: 14px;">
+                        <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                        Generate & Encrypt QR Code
+                    </button>
+                </div>
+
+                <!-- Right Column: Live QR Preview & Export Studio -->
+                <div class="studio-preview-card glass-panel">
+                    <div class="preview-title-bar">
+                        <h3 style="font-size: 16px; font-weight: 700;">Live QR Vault Preview</h3>
+                        <span class="badge badge-accent" id="payloadStatsBadge">Waiting for input...</span>
+                    </div>
+
+                    <!-- QR Viewport -->
+                    <div class="qr-viewport-frame" id="qrFrame">
+                        <div class="qr-code-box" id="qrCodeContainer"></div>
+                        <div class="qr-empty-placeholder" id="qrEmptyState">
+                            <svg style="width: 64px; height: 64px; opacity: 0.3;" viewBox="0 0 24 24"><path fill="currentColor" d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-5 5h2v2h-2v-2zm2-5h2v2h-2v-2zm3 3h2v2h-2v-2zm2 2h2v2h-2v-2zm-7 2h2v2h-2v-2z"/></svg>
+                            <p>Provide input on the left to generate your encrypted QR code</p>
+                        </div>
+                    </div>
+
+                    <!-- Animated Stream Controller (Visible for multi-part large data) -->
+                    <div class="stream-hud" id="animatedStreamControls">
+                        <div class="stream-hud-header">
+                            <span>Air-Gap Stream Sequencer</span>
+                            <span class="badge badge-warning" id="streamFrameIndicator">Frame 1 of 1</span>
+                        </div>
+                        <div class="stream-progress-track">
+                            <div class="stream-progress-bar" id="streamProgressFill"></div>
+                        </div>
+                        <div class="stream-buttons-row">
+                            <button class="btn btn-sm btn-secondary" id="btnStreamPrev">Prev</button>
+                            <button class="btn btn-sm btn-primary" id="btnStreamPlay">
+                                <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                Pause
+                            </button>
+                            <button class="btn btn-sm btn-secondary" id="btnStreamNext">Next</button>
+                            <div class="fps-control-wrap">
+                                <span id="streamFpsLabel">4 FPS</span>
+                                <input type="range" id="streamFpsSlider" min="2" max="10" value="4" style="width: 70px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Actions Grid -->
+                    <div class="export-grid">
+                        <button class="btn btn-secondary" id="btnExportPng1x" title="Download Standard PNG (320px)">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            PNG (1x)
+                        </button>
+                        <button class="btn btn-secondary" id="btnExportPng2x" title="Download High-Res 2x PNG (640px)">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            PNG (2x HD)
+                        </button>
+                        <button class="btn btn-secondary" id="btnExportPng4x" title="Download Ultra-DPI 4x Print Ready (1280px)">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            PNG (4x Print)
+                        </button>
+                        <button class="btn btn-secondary" id="btnExportSvg" title="Download Vector SVG">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            Vector (SVG)
+                        </button>
+                        <button class="btn btn-secondary btn-full" id="btnExportPrint">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                            Print Air-Gap Transfer Card
+                        </button>
+                        <button class="btn btn-secondary btn-full" id="btnCopyQrImage">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            Copy QR Image to Clipboard
+                        </button>
+                        <button class="btn btn-primary btn-full" id="btnShareNative">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                            Share via Device Share
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 2: SCAN & DECRYPT
+             ========================================== -->
+        <section class="tab-panel" id="tab-scan">
+            <div class="scanner-container">
+
+                <!-- Camera Viewport Card -->
+                <div class="camera-card glass-panel">
+                    <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Live Scanner & Decryptor</h2>
+                    <p class="text-muted" style="font-size: 13.5px;">
+                        Point your camera at any AegisQR code to authenticate, decrypt, preview, and download its contents.
+                    </p>
+
+                    <!-- Camera Box -->
+                    <div class="camera-viewport-frame" id="scannerViewport">
+                        <video id="scannerVideo" class="scanner-video" muted playsinline></video>
+                        <canvas id="scannerOverlay" class="scanner-overlay"></canvas>
+                        
+                        <!-- Futuristic Target Reticle -->
+                        <div class="scan-reticle">
+                            <div class="scan-laser-line"></div>
+                        </div>
+
+                        <!-- Idle State -->
+                        <div class="qr-empty-placeholder" id="scannerIdleState" style="position: absolute;">
+                            <svg style="width: 56px; height: 56px; color: var(--accent-cyan);" viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h3V2H4c-1.1 0-2 .9-2 2v3h2V4zm0 14H2v3c0 1.1.9 2 2 2h3v-2H4v-3zm16 3h-3v2h3c1.1 0 2-.9 2-2v-3h-2v3zm0-18h-3v2h3v3h2V4c0-1.1-.9-2-2-2zM12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>
+                            <p style="margin-top: 10px;">Camera is standby. Click below to launch.</p>
+                            <button class="btn btn-primary" id="btnStartCamera" style="margin-top: 8px;">
+                                <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 15c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm0-10c-5.52 0-10 4.48-10 10s4.48 10 10 10 10-4.48 10-10-4.48-10-10-10z"/></svg>
+                                Launch Live Camera
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Camera Controls -->
+                    <div class="camera-actions-bar" id="scannerActiveState" style="display: none;">
+                        <button class="btn btn-secondary" id="btnSwitchCamera">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M9 12c0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3-3 1.34-3 3zm11-6h-3.17L15 4H9L7.17 6H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-5 11.5V14H9v3.5L4.5 13 9 8.5V12h6V8.5l4.5 4.5-4.5 4.5z"/></svg>
+                            Switch Camera
+                        </button>
+                        <button class="btn btn-secondary" id="btnToggleTorch" style="display: none;">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                            Flashlight
+                        </button>
+                        <button class="btn btn-danger" id="btnStopCamera">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h12v12H6z"/></svg>
+                            Stop Camera
+                        </button>
+                    </div>
+
+                    <!-- Multi-Frame Stream Reception HUD -->
+                    <div class="scanner-stream-hud" id="scannerStreamHud">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+                            <span id="scannerStreamText">Receiving Multi-Part Stream...</span>
+                            <span class="badge badge-accent">Sequential</span>
+                        </div>
+                        <div class="stream-progress-track">
+                            <div class="stream-progress-bar" id="scannerStreamFill"></div>
+                        </div>
+                    </div>
+
+                    <!-- Alternate: Image File & Clipboard Scanner -->
+                    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle);">
+                        <div class="dropzone" id="scanDropZone" onclick="document.getElementById('scanFileInput').click()">
+                            <input type="file" id="scanFileInput" accept="image/*" style="display: none;">
+                            <svg class="dropzone-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/></svg>
+                            <div class="dropzone-title">Upload QR Image or Paste from Clipboard (Ctrl+V)</div>
+                            <div class="dropzone-sub">Drop any screenshot or photo containing an AegisQR code</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decrypted Data Output Section -->
+                <div id="scanResultOutput" style="display: none;"></div>
+
+                <div class="glass-panel" id="scanEmptyResult" style="padding: 32px; text-align: center; color: var(--text-muted);">
+                    <svg style="width: 48px; height: 48px; opacity: 0.3; margin-bottom: 8px;" viewBox="0 0 24 24"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    <p>Decrypted contents, interactive media previews, and download links will appear here after scanning.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 3: VAULT LOG & HISTORY
+             ========================================== -->
+        <section class="tab-panel" id="tab-history">
+            <div style="max-width: 780px; margin: 0 auto;">
+                <div class="glass-panel" style="padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h2 style="font-size: 20px; font-weight: 800;">Local Vault Log</h2>
+                            <p class="text-muted" style="font-size: 13.5px;">Recently generated and decrypted transfers stored privately on this device.</p>
+                        </div>
+                    </div>
+                    <div id="historyListContainer" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                    <div id="historyEmptyState" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <p>No past transfers logged yet. Generate or scan a QR code to start building your vault history.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 4: SECURITY & ARCHITECTURE DOCS
+             ========================================== -->
+        <section class="tab-panel" id="tab-docs">
+            <div style="max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+                <div class="glass-panel" style="padding: 28px;">
+                    <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 12px; background: var(--gradient-brand); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        AegisQR Cryptographic Security Standard
+                    </h2>
+                    <p style="color: var(--text-secondary); line-height: 1.7; margin-bottom: 20px;">
+                        AegisQR is engineered to enable zero-trust, air-gapped data transfers between devices without using the internet, servers, or intermediaries. Every payload is secured using modern authenticated encryption before being converted into optical barcode frames.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div style="background: var(--bg-surface-elevated); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <h4 style="color: var(--accent-cyan); margin-bottom: 6px;">AES-256-GCM</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Industry-standard Galois/Counter Mode authenticated encryption executed natively via the browser's Web Cryptography API. Ensures both confidentiality and cryptographic integrity.
+                            </p>
+                        </div>
+                        <div style="background: var(--bg-surface-elevated); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <h4 style="color: var(--accent-violet); margin-bottom: 6px;">Proprietary AQR1 Envelope</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Packaged with application-specific derivation seeds and cryptographic random 16-byte salts. Standard scanners cannot decipher or interpret the encrypted ciphertext.
+                            </p>
+                        </div>
+                        <div style="background: var(--bg-surface-elevated); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <h4 style="color: var(--accent-emerald); margin-bottom: 6px;">DEFLATE Compression</h4>
+                            <p style="font-size: 13px; color: var(--text-muted);">
+                                Pre-compresses text, JSON, contacts, and files by 50–80% prior to encryption, packing maximum data density into standard optical QR limits.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px;">Air-Gapped Multi-Frame Stream Protocol</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.7;">
+                        For large files or data exceeding single-frame density (1.2KB+), AegisQR employs the <strong>Air-Gap Stream Sequencer</strong> (modeled after cryptocurrency hardware wallet standards). The payload is split into synchronized frames cycled at 4–10 FPS. The receiver's camera tracks each frame with live progress HUD and automatically stitches and decrypts the file the moment all frames are received.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <p>AegisQR™ • Zero-Knowledge Universal Optical Data Vault • Built with Native Web APIs</p>
+    </footer>
+
+    <!-- Password Prompt Modal -->
+    <div class="modal-backdrop" id="passwordPromptModal" style="display: none;">
+        <div class="modal-dialog glass-panel">
+            <div class="modal-header">
+                <div class="brand-icon" style="width: 32px; height: 32px;">
+                    <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                </div>
+                <h3 class="modal-title">PIN / Passphrase Required</h3>
+            </div>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
+                This QR code is protected with zero-knowledge password encryption. Please enter the secret passphrase to unlock the contents.
+            </p>
+            <div class="form-group">
+                <input type="password" class="form-input" id="promptPasswordInput" placeholder="Enter PIN or Passphrase">
+                <p id="promptPasswordError" style="display: none; color: #EF4444; font-size: 12px; margin-top: 6px;">
+                    Incorrect password or integrity check failed. Please re-enter.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnCancelPasswordPrompt">Cancel</button>
+                <button class="btn btn-primary" id="btnSubmitPasswordPrompt">Unlock & Decrypt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Application Modules -->
+    <script src="js/crypto/compressor.js"></script>
+    <script src="js/crypto/cipher.js"></script>
+    <script src="js/qr/animated-stream.js"></script>
+    <script src="js/qr/generator.js"></script>
+    <script src="js/qr/exporter.js"></script>
+    <script src="js/scanner/feedback.js"></script>
+    <script src="js/scanner/chunk-collector.js"></script>
+    <script src="js/scanner/camera-scanner.js"></script>
+    <script src="js/scanner/file-scanner.js"></script>
+    <script src="js/viewers/data-viewer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

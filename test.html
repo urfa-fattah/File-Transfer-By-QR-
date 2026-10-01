@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AegisQR Automated Test Suite</title>
+    <script src="vendor/pako.min.js"></script>
+    <script src="vendor/easy.qrcode.min.js"></script>
+    <script src="vendor/jsqr.min.js"></script>
+    <script src="js/crypto/compressor.js"></script>
+    <script src="js/crypto/cipher.js"></script>
+    <script src="js/qr/animated-stream.js"></script>
+    <script src="js/qr/generator.js"></script>
+    <script src="js/scanner/chunk-collector.js"></script>
+</head>
+<body>
+    <h1>AegisQR Test Runner</h1>
+    <div id="testOutput" style="font-family: monospace; white-space: pre;"></div>
+    <div id="qrTestContainer" style="display: none;"></div>
+
+    <script>
+        async function runTests() {
+            const out = document.getElementById('testOutput');
+            function log(msg) {
+                console.log(msg);
+                out.textContent += msg + '\n';
+            }
+
+            try {
+                log('=== STARTING AEGIS-QR TEST SUITE ===');
+
+                // TEST 1: Compressor
+                log('Test 1: Testing Pako compression and decompression...');
+                const sampleText = "The quick brown fox jumps over the lazy dog. ".repeat(20);
+                const compressed = AegisCompressor.compress(sampleText);
+                const decompressed = AegisCompressor.decompress(compressed, true);
+                if (decompressed !== sampleText) throw new Error('Compression roundtrip failed!');
+                log(`  ✓ Compressor OK (Original: ${sampleText.length} bytes -> Compressed: ${compressed.length} bytes, Savings: ${AegisCompressor.getSavings(sampleText.length, compressed.length)}%)`);
+
+                // TEST 2: Encryption & Decryption (Default Seed)
+                log('Test 2: Testing AES-256-GCM encryption & decryption with default app key...');
+                const testPayload = JSON.stringify({ user: "Alice", balance: 50000, sensitiveToken: "token_xyz_987" });
+                const encResult = await AegisCipher.encrypt({
+                    data: testPayload,
+                    type: 'json',
+                    name: 'data.json',
+                    mime: 'application/json'
+                });
+                if (!encResult.envelopeBase64 || !encResult.rawCipherQr.startsWith('AQR1:')) {
+                    throw new Error('Encryption did not produce valid AQR1 envelope.');
+                }
+                const decResult = await AegisCipher.decrypt(encResult.envelopeBase64);
+                if (decResult.asText() !== testPayload) throw new Error('Decrypted payload does not match original!');
+                if (decResult.metadata.name !== 'data.json') throw new Error('Metadata was not preserved!');
+                log('  ✓ Default Key Encryption/Decryption OK');
+
+                // TEST 3: Password-protected encryption
+                log('Test 3: Testing Password-Protected Encryption...');
+                const passEnc = await AegisCipher.encrypt({
+                    data: "SuperSecretPasswordProtectedData123",
+                    type: 'text',
+                    password: 'StrongUserPasscode456'
+                });
+                if (!AegisCipher.isPasswordProtected(passEnc.envelopeBase64)) {
+                    throw new Error('Password protection flag was not detected.');
+                }
+                // Decrypt with correct password
+                const passDec = await AegisCipher.decrypt(passEnc.envelopeBase64, 'StrongUserPasscode456');
+                if (passDec.asText() !== "SuperSecretPasswordProtectedData123") {
+                    throw new Error('Password decrypted payload mismatch!');
+                }
+                // Decrypt with wrong password (should fail)
+                let failedAsExpected = false;
+                try {
+                    await AegisCipher.decrypt(passEnc.envelopeBase64, 'WrongPassword!');
+                } catch (e) {
+                    failedAsExpected = true;
+                }
+                if (!failedAsExpected) throw new Error('Decryption with wrong password should have thrown an error!');
+                log('  ✓ Password Protection & Rejection OK');
+
+                // TEST 4: Tamper Detection (AES-GCM Auth Tag)
+                log('Test 4: Testing Tamper Detection on Ciphertext...');
+                const cleanBytes = encResult.rawBytes.slice();
+                // Flip a bit in the ciphertext section
+                cleanBytes[cleanBytes.length - 5] ^= 0xFF;
+                let tamperCaught = false;
+                try {
+                    await AegisCipher.decrypt(cleanBytes);
+                } catch (e) {
+                    tamperCaught = true;
+                }
+                if (!tamperCaught) throw new Error('Tampered ciphertext was not detected by AES-GCM!');
+                log('  ✓ Tamper Detection OK');
+
+                // TEST 5: Animated Multi-Frame Chunker & Collector
+                log('Test 5: Testing Animated Multi-Frame Chunker & Collector Reassembly...');
+                const player = AegisAnimatedStream.createPlayer();
+                const largeString = "LargePayloadData-".repeat(150); // ~2550 chars
+                const frames = player.prepare(largeString, 400); // 400 chars per frame
+                if (frames.length <= 1) throw new Error('Chunker did not produce multiple frames!');
+
+                const collector = AegisChunkCollector.create();
+                let assembledResult = null;
+                collector.onComplete((assembled) => {
+                    assembledResult = assembled;
+                });
+
+                // Feed frames in reverse order to test out-of-order reassembly!
+                const reversed = [...frames].reverse();
+                for (const f of reversed) {
+                    collector.feed(f.frameString);
+                }
+
+                if (assembledResult !== largeString) {
+                    throw new Error('Collector failed to reassemble multi-part stream correctly!');
+                }
+                log(`  ✓ Multi-Frame Chunker & Collector OK (Split into ${frames.length} frames, reassembled out-of-order flawlessly)`);
+
+                // TEST 6: QR Code Rendering & jsQR Decoding Roundtrip
+                log('Test 6: Testing QR Code Rendering and jsQR Scanning roundtrip...');
+                const qrContainer = document.getElementById('qrTestContainer');
+                qrContainer.style.display = 'block';
+                const qrGen = AegisQRGenerator.create();
+                const testSecretString = "AQR1:TestSecretContentToScan";
+                qrGen.render(qrContainer, testSecretString, {
+                    theme: 'monochrome-light',
+                    dotStyle: 'rect',
+                    logo: 'none',
+                    ecc: 'M',
+                    width: 256,
+                    height: 256
+                });
+
+                const canvas = qrGen.getCanvas();
+                if (!canvas) throw new Error('QR generator failed to create canvas.');
+
+                const ctx = canvas.getContext('2d');
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const decoded = jsQR(imgData.data, imgData.width, imgData.height);
+
+                if (!decoded || decoded.data !== testSecretString) {
+                    throw new Error(`QR Decode mismatch! Expected: ${testSecretString}, Got: ${decoded ? decoded.data : 'null'}`);
+                }
+                log('  ✓ QR Rendering and jsQR Decoding Roundtrip OK');
+
+                log('\n🎉 ALL 6 TEST SUITES PASSED PERFECTLY! 🎉');
+                window.__TESTS_PASSED__ = true;
+            } catch (err) {
+                console.error(err);
+                log('\n❌ TEST FAILED: ' + err.message);
+                window.__TEST_ERROR__ = err.message;
+            } finally {
+                try {
+                    await fetch('/report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            passed: Boolean(window.__TESTS_PASSED__),
+                            error: window.__TEST_ERROR__ || null,
+                            logs: out.textContent
+                        })
+                    });
+                } catch (e) {}
+            }
+        }
+
+        window.onload = runTests;
+    </script>
+</body>
+</html>
