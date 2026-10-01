@@ -1,0 +1,92 @@
+/**
+ * AegisQR - Responsive & Print Stylesheet
+ */
+
+@media (max-width: 960px) {
+    .studio-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .studio-preview-card {
+        position: static;
+        order: -1; /* Show QR preview on top when on tablet */
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .app-main {
+        padding: 14px;
+    }
+
+    .header-container {
+        padding: 10px 14px;
+    }
+
+    .brand-title {
+        font-size: 17px;
+    }
+
+    .brand-badge {
+        display: none;
+    }
+
+    .nav-tab-btn {
+        padding: 6px 12px;
+        font-size: 12.5px;
+    }
+
+    .nav-tab-btn span {
+        display: none; /* Icon only on extra small screens */
+    }
+
+    .qr-viewport-frame {
+        width: 280px;
+        height: 280px;
+    }
+
+    .camera-viewport-frame {
+        height: 300px;
+    }
+
+    .scan-reticle {
+        width: 200px;
+        height: 200px;
+    }
+
+    .export-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .export-grid .btn-full {
+        grid-column: span 1;
+    }
+
+    .toast-container {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+    }
+}
+
+/* Print Optimization */
+@media print {
+    body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+    }
+
+    .app-header, .app-footer, .nav-tabs, .header-actions, .toast-container {
+        display: none !important;
+    }
+
+    .glass-panel {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+}
